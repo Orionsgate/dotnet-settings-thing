@@ -89,6 +89,7 @@ function App() {
   return (
     <div className="h-screen bg-slate-400 dark:bg-slate-950">
       <main className="mx-auto flex h-full min-h-[32rem] w-full max-w-7xl flex-col bg-slate-100 px-4 py-10 dark:bg-slate-700 sm:px-6 lg:px-8">
+        <h1 className="mx-auto text-slate-900 dark:text-slate-100 pb-2">.NET Settings Thing</h1>
         <div className="grid h-full min-h-0 auto-rows-fr gap-6 [grid-template-columns:repeat(auto-fit,minmax(min(100%,60ch),1fr))]">
           <section className="flex min-h-0 flex-col gap-2">
             <div className="flex items-center gap-3">
