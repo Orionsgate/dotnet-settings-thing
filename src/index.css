@@ -8,3 +8,26 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+.cm-editor,
+.cm-scroller {
+  height: 100%;
+}
+
+@media (prefers-color-scheme: dark) {
+  .cm-editor {
+    background-color: #0f172a;
+    color: #f1f5f9;
+  }
+
+  .cm-editor .cm-gutters {
+    background-color: #0f172a;
+    border-right-color: #475569;
+    color: #94a3b8;
+  }
+
+  .cm-activeLine,
+  .cm-activeLineGutter {
+    background-color: #1e293b;
+  }
+}

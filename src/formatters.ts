@@ -14,6 +14,12 @@ export type Entry = {
   value: PrimitiveValue
 }
 
+export const isTypeAgnosticFormat = (format: Format): boolean =>
+  format === '.env' || format === 'Azure app settings'
+
+export const isTypedJsonFormat = (format: Format): boolean =>
+  format === 'appsettings.json' || format === 'local.settings.json'
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
@@ -32,6 +38,44 @@ const dedupeEntries = (entries: Entry[]): Entry[] => {
   }
 
   return Array.from(map, ([key, value]) => ({ key, value }))
+}
+
+const numberPattern = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/
+
+const coerceStringScalar = (value: string): PrimitiveValue => {
+  const trimmed = value.trim()
+
+  if (trimmed === 'true') {
+    return true
+  }
+
+  if (trimmed === 'false') {
+    return false
+  }
+
+  if (numberPattern.test(trimmed)) {
+    const parsed = Number(trimmed)
+    if (Number.isFinite(parsed)) {
+      return parsed
+    }
+  }
+
+  return value
+}
+
+export const coerceEntriesForTypedOutput = (
+  entries: Entry[],
+  inputFormat: Format,
+  outputFormat: Format,
+): Entry[] => {
+  if (!isTypeAgnosticFormat(inputFormat) || !isTypedJsonFormat(outputFormat)) {
+    return entries
+  }
+
+  return entries.map((entry) => ({
+    key: entry.key,
+    value: typeof entry.value === 'string' ? coerceStringScalar(entry.value) : entry.value,
+  }))
 }
 
 const flattenValue = (
