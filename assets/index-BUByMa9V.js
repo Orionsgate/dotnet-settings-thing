@@ -25,7 +25,7 @@ Error generating stack: `+h.message+`
     "slotSetting": false
   },
   {
-    "name": "UnilateralPhaseDetectors",
+    "name": "UnilateralPhaseDetractors",
     "value": "7",
     "slotSetting": false
   },
@@ -53,7 +53,7 @@ Error generating stack: `+h.message+`
   "Sql": {
     "ConnectionString": "Server=localhost,1433;Database=Employees;Trusted_Connection=True;"
   },
-  "UnilateralPhaseDetectors": 7,
+  "UnilateralPhaseDetractors": 7,
   "KaraokeMode": {
     "Enabled": true,
     "Lyrics": [
@@ -65,14 +65,14 @@ Error generating stack: `+h.message+`
 }`;case Yt.LocalSettingsJson:return`{
   "Values": {
     "Sql__ConnectionString": "Server=localhost,1433;Database=Employees;Trusted_Connection=True;",
-    "UnilateralPhaseDetectors": 7,
+    "UnilateralPhaseDetractors": 7,
     "KaraokeMode__Enabled": true,
     "KaraokeMode__Lyrics__0": "We're no strangers to love",
     "KaraokeMode__Lyrics__1": "You know the rules, and so do I",
     "KaraokeMode__Lyrics__2": "A full commitment's what I'm thinking of"
   }
 }`;case Yt.DotEnv:return`Sql__ConnectionString=Server=localhost,1433;Database=Employees;Trusted_Connection=True;
-UnilateralPhaseDetectors=7
+UnilateralPhaseDetractors=7
 KaraokeMode__Enabled=true
 KaraokeMode__Lyrics__0=We're no strangers to love
 KaraokeMode__Lyrics__1=You know the rules, and so do I
