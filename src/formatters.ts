@@ -368,7 +368,7 @@ export const getSampleInput = (format: Format): string => {
     "slotSetting": false
   },
   {
-    "name": "UnilateralPhaseDetectors",
+    "name": "UnilateralPhaseDetractors",
     "value": "7",
     "slotSetting": false
   },
@@ -398,7 +398,7 @@ export const getSampleInput = (format: Format): string => {
   "Sql": {
     "ConnectionString": "Server=localhost,1433;Database=Employees;Trusted_Connection=True;"
   },
-  "UnilateralPhaseDetectors": 7,
+  "UnilateralPhaseDetractors": 7,
   "KaraokeMode": {
     "Enabled": true,
     "Lyrics": [
@@ -412,7 +412,7 @@ export const getSampleInput = (format: Format): string => {
       return `{
   "Values": {
     "Sql__ConnectionString": "Server=localhost,1433;Database=Employees;Trusted_Connection=True;",
-    "UnilateralPhaseDetectors": 7,
+    "UnilateralPhaseDetractors": 7,
     "KaraokeMode__Enabled": true,
     "KaraokeMode__Lyrics__0": "We're no strangers to love",
     "KaraokeMode__Lyrics__1": "You know the rules, and so do I",
@@ -421,7 +421,7 @@ export const getSampleInput = (format: Format): string => {
 }`
     case FormatId.DotEnv:
       return `Sql__ConnectionString=Server=localhost,1433;Database=Employees;Trusted_Connection=True;
-UnilateralPhaseDetectors=7
+UnilateralPhaseDetractors=7
 KaraokeMode__Enabled=true
 KaraokeMode__Lyrics__0=We're no strangers to love
 KaraokeMode__Lyrics__1=You know the rules, and so do I
