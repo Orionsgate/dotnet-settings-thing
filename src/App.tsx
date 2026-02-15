@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { json } from '@codemirror/lang-json'
 import {
   HighlightStyle,
@@ -8,8 +8,11 @@ import {
 import { Prec } from '@codemirror/state'
 import CodeMirror from '@uiw/react-codemirror'
 import { tags } from '@lezer/highlight'
+import { CheckIcon, ChevronDownIcon, ClipboardIcon, ResetIcon } from './icons'
 import {
   coerceEntriesForTypedOutput,
+  FormatId,
+  formatLabelById,
   formatOptions,
   getSampleInput,
   parseByFormat,
@@ -23,6 +26,31 @@ const darkJsonHighlight = syntaxHighlighting(
   ]),
 )
 const defaultSyntaxHighlight = syntaxHighlighting(defaultHighlightStyle)
+const APP_TITLE = '.NET Settings Thing'
+
+type FormatSelectProps = {
+  ariaLabel: string
+  onChange: (format: Format) => void
+  value: Format
+}
+
+const FormatSelect = ({ ariaLabel, onChange, value }: FormatSelectProps) => (
+  <div className="relative">
+    <select
+      aria-label={ariaLabel}
+      className="appearance-none rounded-md border border-slate-300 bg-white px-2 py-1 pr-8 text-sm text-slate-900 outline-none ring-slate-400 transition focus:ring-2 dark:border-slate-500 dark:bg-slate-800 dark:text-slate-100"
+      onChange={(event) => onChange(event.target.value as Format)}
+      value={value}
+    >
+      {formatOptions.map((option) => (
+        <option key={option} value={option}>
+          {formatLabelById[option]}
+        </option>
+      ))}
+    </select>
+    <ChevronDownIcon />
+  </div>
+)
 
 const getEditorExtensions = (format: Format, isDarkMode: boolean) => {
   const darkExtensions = isDarkMode
@@ -30,11 +58,11 @@ const getEditorExtensions = (format: Format, isDarkMode: boolean) => {
     : []
 
   switch (format) {
-    case 'Azure app settings':
-    case 'appsettings.json':
-    case 'local.settings.json':
+    case FormatId.AzureAppSettings:
+    case FormatId.AppSettingsJson:
+    case FormatId.LocalSettingsJson:
       return [json(), ...darkExtensions]
-    case '.env':
+    case FormatId.DotEnv:
       return darkExtensions
     default:
       return darkExtensions
@@ -42,12 +70,11 @@ const getEditorExtensions = (format: Format, isDarkMode: boolean) => {
 }
 
 function App() {
-  const [inputText, setInputText] = useState(getSampleInput(formatOptions[0]))
-  const [inputFormat, setInputFormat] = useState<Format>(formatOptions[0])
+  const [inputText, setInputText] = useState(getSampleInput(formatOptions[1]))
+  const [inputFormat, setInputFormat] = useState<Format>(formatOptions[1])
   const [outputFormat, setOutputFormat] = useState<Format>(formatOptions[0])
-  const [outputText, setOutputText] = useState('')
-  const [parseError, setParseError] = useState('')
   const [justCopied, setJustCopied] = useState(false)
+  const copyResetTimeoutRef = useRef<number | null>(null)
   const [isDarkMode, setIsDarkMode] = useState(() =>
     window.matchMedia('(prefers-color-scheme: dark)').matches,
   )
@@ -60,17 +87,16 @@ function App() {
     return () => mediaQuery.removeEventListener('change', handleChange)
   }, [])
 
-  const handleCopyOutput = async () => {
-    try {
-      await navigator.clipboard.writeText(outputText)
-      setJustCopied(true)
-      window.setTimeout(() => setJustCopied(false), 1200)
-    } catch {
-      // Ignore clipboard failures for now.
-    }
-  }
+  useEffect(
+    () => () => {
+      if (copyResetTimeoutRef.current !== null) {
+        window.clearTimeout(copyResetTimeoutRef.current)
+      }
+    },
+    [],
+  )
 
-  useEffect(() => {
+  const conversionResult = useMemo(() => {
     try {
       const entries = parseByFormat(inputText, inputFormat)
       const normalizedEntries = coerceEntriesForTypedOutput(
@@ -78,57 +104,64 @@ function App() {
         inputFormat,
         outputFormat,
       )
-      const rendered = renderByFormat(normalizedEntries, outputFormat)
-      setOutputText(rendered)
-      setParseError('')
+      return {
+        outputText: renderByFormat(normalizedEntries, outputFormat),
+        parseError: '',
+      }
     } catch (error) {
-      setParseError(error instanceof Error ? error.message : 'Unable to parse input.')
+      return {
+        outputText: '',
+        parseError:
+          error instanceof Error ? error.message : 'Unable to parse input.',
+      }
     }
   }, [inputText, inputFormat, outputFormat])
+
+  const handleCopyOutput = async () => {
+    try {
+      await navigator.clipboard.writeText(conversionResult.outputText)
+      setJustCopied(true)
+      if (copyResetTimeoutRef.current !== null) {
+        window.clearTimeout(copyResetTimeoutRef.current)
+      }
+      copyResetTimeoutRef.current = window.setTimeout(() => {
+        setJustCopied(false)
+        copyResetTimeoutRef.current = null
+      }, 1200)
+    } catch {
+      // Ignore clipboard failures for now.
+    }
+  }
 
   return (
     <div className="h-screen bg-slate-400 dark:bg-slate-950">
       <main className="mx-auto flex h-full min-h-[32rem] w-full max-w-7xl flex-col bg-slate-100 px-4 py-10 dark:bg-slate-700 sm:px-6 lg:px-8">
-        <h1 className="mx-auto text-slate-900 dark:text-slate-100 pb-2">.NET Settings Thing</h1>
+        <h1 className="mx-auto pb-2 text-slate-900 dark:text-slate-100">{APP_TITLE}</h1>
         <div className="grid h-full min-h-0 auto-rows-fr gap-6 [grid-template-columns:repeat(auto-fit,minmax(min(100%,60ch),1fr))]">
           <section className="flex min-h-0 flex-col gap-2">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <select
-                  aria-label="Input format"
-                  className="appearance-none rounded-md border border-slate-300 bg-white px-2 py-1 pr-8 text-sm text-slate-900 outline-none ring-slate-400 transition focus:ring-2 dark:border-slate-500 dark:bg-slate-800 dark:text-slate-100"
-                  onChange={(event) => {
-                    const nextFormat = event.target.value as Format
-                    const currentSample = getSampleInput(inputFormat)
-                    const hasOnlySampleOrEmpty =
-                      !inputText.trim() || inputText === currentSample
+            <div className="flex items-center justify-between gap-3">
+              <FormatSelect
+                ariaLabel="Input format"
+                onChange={(nextFormat) => {
+                  const currentSample = getSampleInput(inputFormat)
+                  const hasOnlySampleOrEmpty =
+                    !inputText.trim() || inputText === currentSample
 
-                    if (hasOnlySampleOrEmpty) {
-                      setInputText(getSampleInput(nextFormat))
-                    }
-                    setInputFormat(nextFormat)
-                  }}
-                  value={inputFormat}
-                >
-                  {formatOptions.map((option) => (
-                    <option key={`input-${option}`} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-                <svg
-                  aria-hidden="true"
-                  className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 dark:text-slate-300"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="m6 9 6 6 6-6" />
-                </svg>
-              </div>
+                  if (hasOnlySampleOrEmpty) {
+                    setInputText(getSampleInput(nextFormat))
+                  }
+                  setInputFormat(nextFormat)
+                }}
+                value={inputFormat}
+              />
+              <button
+                aria-label="Reset input to sample"
+                className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white p-2 text-slate-700 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-400 dark:border-slate-500 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
+                onClick={() => setInputText(getSampleInput(inputFormat))}
+                type="button"
+              >
+                <ResetIcon />
+              </button>
             </div>
             <div className="min-h-0 flex-1 overflow-hidden rounded-md border border-slate-300 bg-white shadow-sm dark:border-slate-500 dark:bg-slate-800">
               <CodeMirror
@@ -141,73 +174,27 @@ function App() {
                 value={inputText}
               />
             </div>
-            {parseError ? (
-              <p className="text-sm text-red-700 dark:text-red-300">{parseError}</p>
+            {conversionResult.parseError ? (
+              <p className="text-sm text-red-700 dark:text-red-300">
+                {conversionResult.parseError}
+              </p>
             ) : null}
           </section>
 
           <section className="flex min-h-0 flex-col gap-2">
             <div className="flex items-center justify-between gap-3">
-              <div className="relative">
-                <select
-                  aria-label="Output format"
-                  className="appearance-none rounded-md border border-slate-300 bg-white px-2 py-1 pr-8 text-sm text-slate-900 outline-none ring-slate-400 transition focus:ring-2 dark:border-slate-500 dark:bg-slate-800 dark:text-slate-100"
-                  onChange={(event) => setOutputFormat(event.target.value as Format)}
-                  value={outputFormat}
-                >
-                  {formatOptions.map((option) => (
-                    <option key={`output-${option}`} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-                <svg
-                  aria-hidden="true"
-                  className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 dark:text-slate-300"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="m6 9 6 6 6-6" />
-                </svg>
-              </div>
+              <FormatSelect
+                ariaLabel="Output format"
+                onChange={setOutputFormat}
+                value={outputFormat}
+              />
               <button
                 aria-label="Copy output"
                 className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white p-2 text-slate-700 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-400 dark:border-slate-500 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
                 onClick={handleCopyOutput}
                 type="button"
               >
-                {justCopied ? (
-                  <svg
-                    aria-hidden="true"
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="m20 6-11 11-5-5" />
-                  </svg>
-                ) : (
-                  <svg
-                    aria-hidden="true"
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    viewBox="0 0 24 24"
-                  >
-                    <rect height="14" rx="2" ry="2" width="14" x="8" y="8" />
-                    <path d="M4 16V6a2 2 0 0 1 2-2h10" />
-                  </svg>
-                )}
+                {justCopied ? <CheckIcon /> : <ClipboardIcon />}
               </button>
             </div>
             <div className="min-h-0 flex-1 overflow-hidden rounded-md border border-slate-300 bg-slate-50 shadow-sm dark:border-slate-500 dark:bg-slate-900">
@@ -218,7 +205,7 @@ function App() {
                 extensions={getEditorExtensions(outputFormat, isDarkMode)}
                 height="100%"
                 id="output-text"
-                value={outputText}
+                value={conversionResult.outputText}
               />
             </div>
           </section>

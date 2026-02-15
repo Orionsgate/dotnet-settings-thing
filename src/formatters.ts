@@ -1,11 +1,25 @@
-export const formatOptions = [
-  'Azure app settings',
-  'appsettings.json',
-  'local.settings.json',
-  '.env',
-] as const
+export const FormatId = {
+  AzureAppSettings: 'azure-app-settings',
+  AppSettingsJson: 'appsettings-json',
+  LocalSettingsJson: 'local-settings-json',
+  DotEnv: 'dotenv',
+} as const
 
-export type Format = (typeof formatOptions)[number]
+export type Format = (typeof FormatId)[keyof typeof FormatId]
+
+export const formatOptions: Format[] = [
+  FormatId.AzureAppSettings,
+  FormatId.AppSettingsJson,
+  FormatId.LocalSettingsJson,
+  FormatId.DotEnv,
+]
+
+export const formatLabelById: Record<Format, string> = {
+  [FormatId.AzureAppSettings]: 'Azure app settings',
+  [FormatId.AppSettingsJson]: 'appsettings.json',
+  [FormatId.LocalSettingsJson]: 'local.settings.json',
+  [FormatId.DotEnv]: '.env',
+}
 
 export type PrimitiveValue = string | number | boolean | null
 
@@ -15,10 +29,10 @@ export type Entry = {
 }
 
 export const isTypeAgnosticFormat = (format: Format): boolean =>
-  format === '.env' || format === 'Azure app settings'
+  format === FormatId.DotEnv || format === FormatId.AzureAppSettings
 
 export const isTypedJsonFormat = (format: Format): boolean =>
-  format === 'appsettings.json' || format === 'local.settings.json'
+  format === FormatId.AppSettingsJson || format === FormatId.LocalSettingsJson
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -314,13 +328,13 @@ const renderLocalSettingsJson = (entries: Entry[]): string =>
 
 export const parseByFormat = (text: string, format: Format): Entry[] => {
   switch (format) {
-    case 'Azure app settings':
+    case FormatId.AzureAppSettings:
       return parseAzureAppSettings(text)
-    case '.env':
+    case FormatId.DotEnv:
       return parseEnv(text)
-    case 'appsettings.json':
+    case FormatId.AppSettingsJson:
       return parseAppSettingsJson(text)
-    case 'local.settings.json':
+    case FormatId.LocalSettingsJson:
       return parseLocalSettingsJson(text)
     default:
       throw new Error(`Unsupported input format: ${format}`)
@@ -331,13 +345,13 @@ export const renderByFormat = (entries: Entry[], format: Format): string => {
   const normalized = dedupeEntries(entries)
 
   switch (format) {
-    case 'Azure app settings':
+    case FormatId.AzureAppSettings:
       return renderAzureAppSettings(normalized)
-    case '.env':
+    case FormatId.DotEnv:
       return renderEnv(normalized)
-    case 'appsettings.json':
+    case FormatId.AppSettingsJson:
       return renderAppSettingsJson(normalized)
-    case 'local.settings.json':
+    case FormatId.LocalSettingsJson:
       return renderLocalSettingsJson(normalized)
     default:
       throw new Error(`Unsupported output format: ${format}`)
@@ -346,46 +360,72 @@ export const renderByFormat = (entries: Entry[], format: Format): string => {
 
 export const getSampleInput = (format: Format): string => {
   switch (format) {
-    case 'Azure app settings':
+    case FormatId.AzureAppSettings:
       return `[
   {
-    "name": "key1",
-    "value": "value1",
+    "name": "Sql__ConnectionString",
+    "value": "Server=localhost,1433;Database=Employees;Trusted_Connection=True;",
     "slotSetting": false
   },
   {
-    "name": "key2",
-    "value": "42",
+    "name": "UnilateralPhaseDetectors",
+    "value": "7",
+    "slotSetting": false
+  },
+  {
+    "name": "KaraokeMode__Enabled",
+    "value": "true",
+    "slotSetting": false
+  },
+  {
+    "name": "KaraokeMode__Lyrics__0",
+    "value": "We're no strangers to love",
+    "slotSetting": false
+  },
+  {
+    "name": "KaraokeMode__Lyrics__1",
+    "value": "You know the rules, and so do I",
+    "slotSetting": false
+  },
+  {
+    "name": "KaraokeMode__Lyrics__2",
+    "value": "A full commitment's what I'm thinking of",
     "slotSetting": false
   }
 ]`
-    case 'appsettings.json':
+    case FormatId.AppSettingsJson:
       return `{
-  "key1": "value1",
-  "key2": 42,
-  "featureEnabled": true,
-  "obj": {
-    "key3": "value3"
+  "Sql": {
+    "ConnectionString": "Server=localhost,1433;Database=Employees;Trusted_Connection=True;"
   },
-  "list": ["a", "b"]
-}`
-    case 'local.settings.json':
-      return `{
-  "Values": {
-    "key1": "value1",
-    "key2": 42,
-    "featureEnabled": true,
-    "obj__key3": "value3",
-    "list__0": "a",
-    "list__1": "b"
+  "UnilateralPhaseDetectors": 7,
+  "KaraokeMode": {
+    "Enabled": true,
+    "Lyrics": [
+      "We're no strangers to love",
+      "You know the rules, and so do I",
+      "A full commitment's what I'm thinking of"
+    ]
   }
 }`
-    case '.env':
-      return `# comments and blank lines are ignored
-key1=value1
-key2="value with spaces"
-featureEnabled=true
-timeout=42`
+    case FormatId.LocalSettingsJson:
+      return `{
+  "Values": {
+    "Sql__ConnectionString": "Server=localhost,1433;Database=Employees;Trusted_Connection=True;",
+    "UnilateralPhaseDetectors": 7,
+    "KaraokeMode__Enabled": true,
+    "KaraokeMode__Lyrics__0": "We're no strangers to love",
+    "KaraokeMode__Lyrics__1": "You know the rules, and so do I",
+    "KaraokeMode__Lyrics__2": "A full commitment's what I'm thinking of"
+  }
+}`
+    case FormatId.DotEnv:
+      return `Sql__ConnectionString=Server=localhost,1433;Database=Employees;Trusted_Connection=True;
+UnilateralPhaseDetectors=7
+KaraokeMode__Enabled=true
+KaraokeMode__Lyrics__0=We're no strangers to love
+KaraokeMode__Lyrics__1=You know the rules, and so do I
+KaraokeMode__Lyrics__2=A full commitment's what I'm thinking of`
     default:
       return ''
   }
